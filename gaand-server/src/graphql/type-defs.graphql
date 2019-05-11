@@ -1,3 +1,74 @@
 type Query {
     hello: String!
 }
+
+#***********************************************************************************************
+
+type Theme {
+    id: ID!
+    code: String!
+    name: String!
+    childs: [ChildOfTheme]
+}
+type ChildTheme {
+    id: ID!
+    code: String!
+    name: String!
+    parent: ChildOfTheme!
+    artists: [ArtistRelatedTo]
+    places: [PlaceRelatedTo]
+    products: [ProductRelatedTo]
+}
+type Artist {
+    id: ID!
+    code: String!
+    name: String!
+    relatedTo: [ArtistRelatedTo]
+    perfomsAt: [ArtistPerformsAt]
+}
+type Place {
+    id: ID!
+    code: String!
+    name: String!
+    relatedTo: [PlaceRelatedTo]
+    products: [TakePlaceAt]
+}
+type Product {
+    id: ID!
+    code: String!
+    type: String!
+    name: String!
+    relatedTo: [ProductRelatedTo]
+    partOf: [PartOfProduct]
+    artists: [ArtistPerformsAt]
+    places: [TakePlaceAt]
+}
+
+type ChildOfTheme @relation(name: "CHILD_OF_THEME") {
+    from: ChildTheme
+    to: Theme
+}
+type ArtistRelatedTo @relation(name: "ARTIST_RELATED_TO") {
+    from: Artist
+    to: ChildTheme
+}
+type PlaceRelatedTo @relation(name: "PLACE_RELATED_TO") {
+    from: Place
+    to: ChildTheme
+}
+type ProductRelatedTo @relation(name: "PRODUCT_RELATED_TO") {
+    from: Product
+    to: ChildTheme
+}
+type PartOfProduct @relation(name: "PART_OF_PRODUCT") {
+    from: Product
+    to: Product
+}
+type ArtistPerformsAt @relation(name: "ARTIST_PERFORMS_AT") {
+    from: Artist
+    to: Product
+}
+type TakePlaceAt @relation(name: "TAKE_PLACE_AT") {
+    from: Product
+    to: Place
+}
