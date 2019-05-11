@@ -1,0 +1,5 @@
+node_modules/
+dist/
+
+# Comment if you want to share
+# .env
