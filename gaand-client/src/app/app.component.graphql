@@ -1,3 +1,29 @@
 query Hello {
     hello
 }
+
+query Todo(
+    $id: ID
+    $name: String
+    $done: Boolean
+    $_id: String
+    $first: Int
+    $offset: Int
+    $orderBy: [_TodoOrdering]
+    $filter: _TodoFilter
+) {
+    Todo(
+        id: $id
+        name: $name
+        done: $done
+        _id: $_id
+        first: $first
+        offset: $offset
+        orderBy: $orderBy
+        filter: $filter
+    ) {
+        id
+        name
+        done
+    }
+}

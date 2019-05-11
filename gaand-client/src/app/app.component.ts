@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { HelloGQL, Hello } from './graphql';
+import { HelloGQL, Hello, TodoGQL, Todo } from './graphql';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -11,11 +11,18 @@ import { map } from 'rxjs/operators';
 export class AppComponent implements OnInit {
   title = 'app';
   hello$: Observable<string>;
-  constructor(private helloGql: HelloGQL) {}
+  todos$: Observable<Todo.Todo[]>;
+  constructor(
+    private helloGQL: HelloGQL,
+    private todoGQL: TodoGQL,
+  ) {}
 
   ngOnInit() {
-    this.hello$ = this.helloGql.watch().valueChanges.pipe(
+    this.hello$ = this.helloGQL.watch().valueChanges.pipe(
       map(v => v.data && v.data.hello)
+    );
+    this.todos$ = this.todoGQL.watch({ first: 25 }).valueChanges.pipe(
+      map(v => v.data && v.data.Todo)
     );
   }
 }
