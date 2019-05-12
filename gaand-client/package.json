@@ -8,6 +8,10 @@
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
+    "mv": "mv",
+    "bk:schema": "mv ./src/app/graphql/schema.json ./src/app/graphql/backup/schema.json",
+    "bk:index": "mv ./src/app/graphql/index.ts ./src/app/graphql/backup/index.ts",
+    "bk": "yarn run bk:index && yarn run bk:schema",
     "gql:introspect": "npx gql-gen --schema http://localhost:4266 --template graphql-codegen-introspection-template --out ./src/app/graphql/schema.json",
     "gql:generate": "npx gql-gen --schema ./src/app/graphql/schema.json --template graphql-codegen-apollo-angular-template --out src/app/graphql/index.ts src/**/*.graphql",
     "sync": "yarn run gql:introspect && yarn run gql:generate"

@@ -1,0 +1,11 @@
+<div *ngFor="let theme of themes$ | async">
+
+  <h3>Theme: {{theme.name}} -- {{theme.code}}</h3>
+
+  <div *ngFor="let child of theme.childs">  
+    <p>&nbsp;&nbsp;&nbsp;&nbsp;Child: {{child.ChildTheme.name}} -- {{child.ChildTheme.code}}</p>
+  </div>
+
+  <hr>
+
+</div>

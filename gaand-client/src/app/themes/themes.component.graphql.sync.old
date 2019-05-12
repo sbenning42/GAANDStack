@@ -1,0 +1,62 @@
+query ThemesAndChilds {
+    Theme { id name code }
+    ChildTheme { id name code }
+}
+
+mutation CreateTheme($id: ID! $code: String! $name: String!) {
+    CreateTheme(id: $id code: $code name: $name) { id name code }
+}
+
+mutation CreateChildTheme($id: ID! $code: String! $name: String!) {
+    CreateChildTheme(id: $id code: $code name: $name) { id name code }
+}
+
+mutation AddChildThemeParent($from: _ChildThemeInput! $to: _ThemeInput!) {
+    AddChildThemeParent(from: $from to: $to) { from { id code name } to { id code name } }
+}
+
+mutation RemoveChildThemeParent($from: _ChildThemeInput! $to: _ThemeInput!) {
+    RemoveChildThemeParent(from: $from to: $to) { from { id code name } to { id code name } }
+}
+
+
+    this.themes.fetch().pipe(
+      tap(console.log),
+      switchMap((themes: SteamuloTheme[]) => {
+        const _mutations = themes.map(theme => ({
+          create: this.createTheme.mutate({
+            id: (theme.id = uuid()),
+            code: theme.codeTheme,
+            name: theme.libelle,
+          }).pipe(
+            map(mutation => mutation.data && mutation.data.CreateTheme),
+            tap(() => console.log('Has created a theme !'))
+          ),
+          childs: theme.childs.map(child => ({
+            create: this.createChildTheme.mutate({
+              id: (child.id = uuid()),
+              code: child.codeTheme,
+              name: child.libelle,
+            }).pipe(
+              map(mutation => mutation.data && mutation.data.CreateChildTheme),
+              tap(() => console.log('Has created a child theme !'))
+            ),
+            associate: this.addChildThemeParent.mutate({
+              from: { id: child.id },
+              to: { id: theme.id },
+            }).pipe(
+              map(mutation => mutation.data && mutation.data.AddChildThemeParent),
+              tap(() => console.log('Has added a child theme parent !'))
+            ),
+          })),
+        }));
+        const flatMutations = _mutations.reduce((all, one) => {
+          return all.concat(
+            one.create,
+            ...one.childs.map(child => child.create),
+            ...one.childs.map(child => child.associate)
+          );
+        }, []);
+        return concat(...flatMutations);
+      })
+    ).subscribe(console.log);

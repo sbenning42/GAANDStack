@@ -1,0 +1,139 @@
+query Product {
+    Product {
+      id
+      name
+      code
+      type
+      relatedTo {
+        ChildTheme { id name code parent { Theme { id name code } } }
+      }
+      partOf {
+        to {
+          Product {
+            id
+            name
+            code
+            type
+            relatedTo {
+              ChildTheme { id name code parent { Theme { id name code } } }
+            }
+          }
+        }
+      }
+    }
+}
+
+mutation CreateProduct($id: ID! $code: String! $name: String! $type: String!) {
+    CreateProduct(id: $id code: $code name: $name type: $type) { id name code type }
+}
+
+mutation CreateArtist($id: ID! $code: String! $name: String!) {
+    CreateArtist(id: $id code: $code name: $name) { id name code }
+}
+
+mutation AddArtistPerfomsAt($from: _ArtistInput! $to: _ProductInput!) {
+    AddArtistPerfomsAt(from: $from to: $to) { from { id name code } to { id name code } }
+}
+
+mutation AddArtistRelatedTo($from: _ArtistInput! $to: _ChildThemeInput!) {
+  AddArtistRelatedTo(from: $from to: $to) { from { id name code } to { id name code } }
+}
+
+mutation AddProductRelatedTo($from: _ProductInput! $to: _ChildThemeInput!) {
+  AddProductRelatedTo(from: $from to: $to) { from { id name code } to { id name code } }
+}
+
+
+    const already = {
+      artists: {},
+    };
+    const createProduct = (product: any) => this.createProduct.mutate({
+      id: product.id,
+      code: product.produit,
+      name: product.productTitle,
+      type: product.type,
+    }).pipe(
+      map(mutation => mutation.data && mutation.data.CreateProduct),
+      tap(() => console.log(`Perform with createProduct success !`))
+    );
+    const addProductRelatedTo = (product: any, theme: any) => this.addProductRelatedTo.mutate({
+      from: { id: product.id },
+      to: { id: theme.ChildTheme.id },
+    }).pipe(
+      map(mutation => mutation.data && mutation.data.AddProductRelatedTo),
+      tap(() => console.log(`Perform addProductRelatedTo with success !`))
+    );
+    const createArtist = (artist: any) => {
+      already.artists[artist.code] = { create: true, relatedTo: {}, perfomsAt: {} };
+      return this.createArtist.mutate({
+        id: artist.id,
+        name: artist.prenomEtNom,
+        code: artist.code,
+      }).pipe(
+        map(mutation => mutation.data && mutation.data.CreateArtist),
+        tap(() => console.log(`Perform createArtist with success !`))
+      );
+    };
+    const addArtistPerfomsAt = (artist: any, product: any) => this.addArtistPerfomsAt.mutate({
+      from: { id: artist.id },
+      to: { id: product.id },
+    }).pipe(
+      map(mutation => mutation.data && mutation.data.AddArtistPerfomsAt),
+      tap(() => console.log(`Perform addArtistPerfomsAt with success !`))
+    );
+    const addArtistRelatedTo = (artist: any, theme: any) => this.addArtistRelatedTo.mutate({
+      from: { id: artist.id },
+      to: { id: theme.ChildTheme.id },
+    }).pipe(
+      map(mutation => mutation.data && mutation.data.AddArtistRelatedTo),
+      tap(() => console.log(`Perform addArtistRelatedTo with success !`))
+    );
+    const shouldCreateProduct = (product: any) => createProduct(product);
+    const shouldRelateProduct = (product: any, theme: any) => addProductRelatedTo(product, theme);
+    const shouldCreateArtist = (artist: any) => already.artists[artist.code]
+      ? empty()
+      : createArtist(artist);
+    const shouldRelateArtist = (artist: any, theme: any) => theme && already.artists[artist.code].relatedTo[theme.ChildTheme.code]
+      ? empty()
+      : addArtistRelatedTo(artist, theme);
+    const shouldPerfomsArtist = (artist: any, product: any) => addArtistPerfomsAt(artist, product);
+    console.log('here !');
+    zip(
+      this.products.fetch(),
+      this.theme.watch().valueChanges.pipe(take(1)),
+    ).pipe(
+      tap(() => console.log('Got zip response, switchMapping ...')),
+      switchMap(([products, themes]: [any[], ApolloQueryResult<Theme.Query>]) => {
+        products.forEach(product => {
+          product.id = uuid();
+          product.artistes.forEach(artist => {
+            artist.id = uuid();
+          });
+        });
+        const childThemes = themes.data.Theme.reduce((all, one) => all.concat(...one.childs), []);
+        const mutations = products.map(product => ({
+          create: shouldCreateProduct(product),
+          artists: product.artistes.map(artist => ({
+            create: shouldCreateArtist(artist),
+            performsAt: shouldPerfomsArtist(artist, product),
+            relatedTo: artist.flatCodeSoustheme
+              .map(fcst => childThemes.find(ct => ct.ChildTheme.code === fcst))
+              .map(ct => shouldRelateArtist(artist, ct)),
+          })),
+          relatedTo: product.flatCodeSoustheme
+            .map(fcst => childThemes.find(ct => ct.ChildTheme.code === fcst))
+            .map(ct => shouldRelateProduct(product, ct)),
+          }));
+        const flatMutations = mutations.reduce((all, one) => {
+          return all.concat(
+            one.create,
+            ...one.relatedTo,
+            ...one.artists.map(artist => artist.create),
+            ...one.artists.reduce((thisAll, artist) => thisAll.concat(...artist.relatedTo), []),
+            ...one.artists.reduce((thisAll, artist) => thisAll.concat(artist.performsAt), []),
+          );
+        }, []);
+        console.log('Returning concat from switchMap.');
+        return concat(...flatMutations);
+      })
+    ).subscribe(console.log);

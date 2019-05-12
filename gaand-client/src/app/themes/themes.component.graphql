@@ -1,0 +1,8 @@
+query Theme {
+    Theme {
+        id code name
+        childs {
+            ChildTheme { id code name }
+        }
+    }
+}
